@@ -8,7 +8,7 @@ class TransactionExecuter extends ActiveTransactionObject {
 	final private Integer number;
 
 	final private TransactionManager manager;
-	private TEOTransactionWithException<?, ?> currentTask;
+	private TEOTransactionWithTwoExceptions<?, ?, ?> currentTask;
 
 	public TransactionExecuter( TransactionManager manager){
 		this.manager = manager;
@@ -23,7 +23,7 @@ class TransactionExecuter extends ActiveTransactionObject {
 	public void run() {
 		while( true ){
 			try {
-				TEOTransactionWithException<?, ?> task = this.inputBuffer.get();
+				TEOTransactionWithTwoExceptions<?, ?, ?> task = this.inputBuffer.get();
 				this.setAndExecuteCurrentTransaction(task);
 				manager.acknowlegdeExecution( task );
 			} catch (StopException e) {
@@ -31,7 +31,7 @@ class TransactionExecuter extends ActiveTransactionObject {
 			}
 		}
 	}
-	private void setAndExecuteCurrentTransaction(TEOTransactionWithException<?, ?> task) {
+	private void setAndExecuteCurrentTransaction(TEOTransactionWithTwoExceptions<?, ?, ?> task) {
 		this.currentTask = task;
 		task.execute();
 	}
@@ -40,7 +40,7 @@ class TransactionExecuter extends ActiveTransactionObject {
 		return "Executer " + this.number;
 	}
 
-	public TEOTransactionWithException<?, ?> getcurrentTransaction() {
+	public TEOTransactionWithTwoExceptions<?, ?, ?> getcurrentTransaction() {
 		return this.currentTask;
 	}
 }

@@ -19,7 +19,7 @@ public class TransactionAdministration extends ActiveTransactionObject implement
 	}
 	
 	private Buffer<TransactionExecuter> executerPool = null;
-	private Map< TEOTransactionWithException<?, ?>, TransactionExecuter > taskMap = new HashMap<TEOTransactionWithException<?, ?>, TransactionExecuter>();
+	private Map< TEOTransactionWithTwoExceptions<?, ?, ?>, TransactionExecuter > taskMap = new HashMap<TEOTransactionWithTwoExceptions<?, ?, ?>, TransactionExecuter>();
 	
 	private TransactionAdministration(){
 		this.initExecuterPool();		
@@ -35,7 +35,7 @@ public class TransactionAdministration extends ActiveTransactionObject implement
 		}
 	}
 	@Override
-	public void handle(TEOTransactionWithException<?, ?> task) {
+	public void handle(TEOTransactionWithTwoExceptions<?, ?, ?> task) {
 		if (! (task.state == InitialState.theInitialState)) throw new Error("Transactions shall not be handled twice!");
 		task.state = ReadyState.theReadyState;
 		super.handle(task);
@@ -44,7 +44,7 @@ public class TransactionAdministration extends ActiveTransactionObject implement
 	@Override
 	public void run() {
 		while(true){
-			TEOTransactionWithException< ?, ?> task = null;
+			TEOTransactionWithTwoExceptions<?, ?, ?> task = null;
 			try {
 				task = this.inputBuffer.get();
 			} catch (StopException e) {
@@ -71,7 +71,7 @@ public class TransactionAdministration extends ActiveTransactionObject implement
 		}
 	}
 
-	private void startExecution(TEOTransactionWithException<?, ?> task) throws StopException {
+	private void startExecution(TEOTransactionWithTwoExceptions<?, ?, ?> task) throws StopException {
 		// Manager waits for idle executor. Executor gets at most one task into its input queue.
 		TransactionExecuter executer = this.executerPool.get();
 		synchronized( this ){			
@@ -81,7 +81,7 @@ public class TransactionAdministration extends ActiveTransactionObject implement
 	}
 
 	@Override
-	public void acknowlegdeExecution(TEOTransactionWithException<?, ?> task) {
+	public void acknowlegdeExecution(TEOTransactionWithTwoExceptions<?, ?, ?> task) {
 		TransactionExecuter executer = null;
 		synchronized( this ){			
 			executer = this.taskMap.remove(task);
