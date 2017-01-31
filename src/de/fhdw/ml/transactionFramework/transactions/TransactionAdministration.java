@@ -9,9 +9,9 @@ public class TransactionAdministration extends ActiveTransactionObject implement
 
 	private static final int NumberOfExecuters = 5;
 
-	private static ActiveTransactionObject theTransactionAdministration = null;
+	private static TransactionAdministration theTransactionAdministration = null;
 
-	public static ActiveTransactionObject getTheTransactionAdministration() {
+	synchronized public static TransactionAdministration getTheTransactionAdministration() {
 		if( theTransactionAdministration  == null ){
 			theTransactionAdministration = new TransactionAdministration();
 		}
@@ -20,6 +20,8 @@ public class TransactionAdministration extends ActiveTransactionObject implement
 	
 	private Buffer<TransactionExecuter> executerPool = null;
 	private Map< TEOTransactionWithTwoExceptions<?, ?, ?>, TransactionExecuter > taskMap = new HashMap<TEOTransactionWithTwoExceptions<?, ?, ?>, TransactionExecuter>();
+
+	private int runningExecuters;
 	
 	private TransactionAdministration(){
 		this.initExecuterPool();		
@@ -30,7 +32,7 @@ public class TransactionAdministration extends ActiveTransactionObject implement
 
 	private void initExecuterPool() {
 		this.executerPool = new Buffer<TransactionExecuter>();
-		for( int i = 0; i < NumberOfExecuters; i++ ){
+		for( this.runningExecuters = 0; this.runningExecuters < NumberOfExecuters; this.runningExecuters++ ){
 			this.executerPool.put(new TransactionExecuter( this ));
 		}
 	}
@@ -88,5 +90,37 @@ public class TransactionAdministration extends ActiveTransactionObject implement
 		}
 		this.executerPool.put(executer);
 	}
-			
+	synchronized public void terminate() {
+		this.stop();
+		while (this.runningExecuters != 0) {
+			try {
+				this.wait();
+			} catch (InterruptedException e) {
+				return;
+			}
+		}
+		theTransactionAdministration = null;
+	}
+
+	@Override
+	synchronized public void reportTermination() {
+		if (--this.runningExecuters == 0) this.notify();
+	}
+		
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

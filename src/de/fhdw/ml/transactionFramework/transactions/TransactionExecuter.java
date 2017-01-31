@@ -27,6 +27,7 @@ class TransactionExecuter extends ActiveTransactionObject {
 				this.setAndExecuteCurrentTransaction(task);
 				manager.acknowlegdeExecution( task );
 			} catch (StopException e) {
+				this.manager.reportTermination();
 				return;
 			}
 		}

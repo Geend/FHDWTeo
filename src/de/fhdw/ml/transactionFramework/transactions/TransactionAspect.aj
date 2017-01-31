@@ -4,7 +4,6 @@ import de.fhdw.ml.transactionFramework.transactions.TEOTransactionWithTwoExcepti
 
 public aspect TransactionAspect {
 	
-	@SuppressWarnings("unchecked")
 	synchronized void TEOTransactionWithTwoExceptions.execute() {
 		if( ! ( this.state == ReadyState.theReadyState ) ) throw new Error("Transaction is not ready for execution or has been executed already!");
 		try {
