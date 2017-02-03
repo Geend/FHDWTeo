@@ -56,18 +56,8 @@ public class ObjectStore {
 			}
 		}
 	}
-	void deleteStore() throws ObjectStoreRootCreationFailure {
-		this.deleteAll(this.getRootDirectoryOfObjectStore());
-	}
-	private void deleteAll(File fileOrDirectory) {
-		if (!fileOrDirectory.exists()) return;
-		if (!fileOrDirectory.isFile()) {
-			File[] containees = fileOrDirectory.listFiles();
-			for (int i = 0; i < containees.length; i++) this.deleteAll(containees[i]);
-		}
-		fileOrDirectory.delete();
-	}
-	public void terminate(){
+	
+	public void finalize(){
 		try {
 			ObjectOutputStream outputStream = new ObjectOutputStream(new FileOutputStream(this.getInitialiseFrameworkFile()));
 			outputStream.writeObject(this.initialValueStore);

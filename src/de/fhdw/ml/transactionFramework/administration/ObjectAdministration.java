@@ -105,15 +105,6 @@ public class ObjectAdministration {
 	}
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------
-	public void deleteObjectStore(){
-		try {
-			this.getTheObjectStore().deleteStore();
-			theAdministration = null;
-			System.out.println("Object store deleted!");
-		} catch (ObjectStoreRootCreationFailure e) {
-			this.handleObjectAdmistrationException(e);
-		}
-	}
 	
 	private void doInitialiseApplication() {
 		try {
@@ -125,9 +116,8 @@ public class ObjectAdministration {
 		} 
 	}
 	private void doFinaliseApplication() {
-		this.getTheObjectStore().terminate(); 
-		TransactionAdministration.getTheTransactionAdministration().terminate();
-		theAdministration = null;
+		this.getTheObjectStore().finalize(); 
+		TransactionAdministration.getTheTransactionAdministration().stop();
 	}
 	private void storeObject(RealFramework_Object createdObject) {
 		try {
@@ -138,7 +128,7 @@ public class ObjectAdministration {
 			this.handleObjectAdmistrationException(e);
 		}
 	}
-	synchronized private void doStringIndexUpdate(Object_Transactional manipulatedObject, String newValue, String fieldName) {
+	private void doStringIndexUpdate(Object_Transactional manipulatedObject, String newValue, String fieldName) {
 		Field indexField = ReflectionSupport.getFieldAccess(manipulatedObject,fieldName);
 		indexField.setAccessible(true);
 		String oldValue;
@@ -169,7 +159,7 @@ public class ObjectAdministration {
 		return this.getTheObjectStore().getRootDirectoryOfObjectStore();
 	}
 
-	synchronized public Collection<Object_Transactional> getByIndex(String className, String fieldName, String index) {
+	public Collection<Object_Transactional> getByIndex(String className, String fieldName, String index) {
 		try {
 			Set<Long> numbersForObjectsInIndex = this.getTheIndexStore().getByIndex(className, fieldName, index);
 			Collection<Object_Transactional> result = new LinkedList<Object_Transactional>();
