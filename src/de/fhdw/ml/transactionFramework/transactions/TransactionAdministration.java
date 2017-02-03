@@ -9,9 +9,9 @@ public class TransactionAdministration extends ActiveTransactionObject implement
 
 	private static final int NumberOfExecuters = 5;
 
-	private static ActiveTransactionObject theTransactionAdministration = null;
+	private static TransactionAdministration theTransactionAdministration = null;
 
-	public static ActiveTransactionObject getTheTransactionAdministration() {
+	synchronized public static TransactionAdministration getTheTransactionAdministration() {
 		if( theTransactionAdministration  == null ){
 			theTransactionAdministration = new TransactionAdministration();
 		}
@@ -19,7 +19,9 @@ public class TransactionAdministration extends ActiveTransactionObject implement
 	}
 	
 	private Buffer<TransactionExecuter> executerPool = null;
-	private Map< TEOTransactionWithTwoExceptions<?, ?, ?>, TransactionExecuter > taskMap = new HashMap<TEOTransactionWithTwoExceptions<?, ?, ?>, TransactionExecuter>();
+	private Map< TEOTransactionWith2Exceptions<?, ?, ?>, TransactionExecuter > taskMap = new HashMap<TEOTransactionWith2Exceptions<?, ?, ?>, TransactionExecuter>();
+
+	private int runningExecuters;
 	
 	private TransactionAdministration(){
 		this.initExecuterPool();		
@@ -30,12 +32,12 @@ public class TransactionAdministration extends ActiveTransactionObject implement
 
 	private void initExecuterPool() {
 		this.executerPool = new Buffer<TransactionExecuter>();
-		for( int i = 0; i < NumberOfExecuters; i++ ){
+		for( this.runningExecuters = 0; this.runningExecuters < NumberOfExecuters; this.runningExecuters++ ){
 			this.executerPool.put(new TransactionExecuter( this ));
 		}
 	}
 	@Override
-	public void handle(TEOTransactionWithTwoExceptions<?, ?, ?> task) {
+	public void handle(TEOTransactionWith2Exceptions<?, ?, ?> task) {
 		if (! (task.state == InitialState.theInitialState)) throw new Error("Transactions shall not be handled twice!");
 		task.state = ReadyState.theReadyState;
 		super.handle(task);
@@ -44,7 +46,7 @@ public class TransactionAdministration extends ActiveTransactionObject implement
 	@Override
 	public void run() {
 		while(true){
-			TEOTransactionWithTwoExceptions<?, ?, ?> task = null;
+			TEOTransactionWith2Exceptions<?, ?, ?> task = null;
 			try {
 				task = this.inputBuffer.get();
 			} catch (StopException e) {
@@ -71,7 +73,7 @@ public class TransactionAdministration extends ActiveTransactionObject implement
 		}
 	}
 
-	private void startExecution(TEOTransactionWithTwoExceptions<?, ?, ?> task) throws StopException {
+	private void startExecution(TEOTransactionWith2Exceptions<?, ?, ?> task) throws StopException {
 		// Manager waits for idle executor. Executor gets at most one task into its input queue.
 		TransactionExecuter executer = this.executerPool.get();
 		synchronized( this ){			
@@ -81,12 +83,28 @@ public class TransactionAdministration extends ActiveTransactionObject implement
 	}
 
 	@Override
-	public void acknowlegdeExecution(TEOTransactionWithTwoExceptions<?, ?, ?> task) {
+	public void acknowlegdeExecution(TEOTransactionWith2Exceptions<?, ?, ?> task) {
 		TransactionExecuter executer = null;
 		synchronized( this ){			
 			executer = this.taskMap.remove(task);
 		}
 		this.executerPool.put(executer);
 	}
-			
+	synchronized public void terminate() {
+		this.stop();
+		while (this.runningExecuters != 0) {
+			try {
+				this.wait();
+			} catch (InterruptedException e) {
+				return;
+			}
+		}
+		theTransactionAdministration = null;
+	}
+
+	@Override
+	synchronized public void reportTermination() {
+		if (--this.runningExecuters == 0) this.notify();
+	}
+		
 }

@@ -105,6 +105,15 @@ public class ObjectAdministration {
 	}
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------
+	public void deleteObjectStore(){
+		try {
+			this.getTheObjectStore().deleteStore();
+			theAdministration = null;
+			System.out.println("Object store deleted!");
+		} catch (ObjectStoreRootCreationFailure e) {
+			this.handleObjectAdmistrationException(e);
+		}
+	}
 	
 	private void doInitialiseApplication() {
 		try {
@@ -116,8 +125,9 @@ public class ObjectAdministration {
 		} 
 	}
 	private void doFinaliseApplication() {
-		this.getTheObjectStore().finalize(); 
-		TransactionAdministration.getTheTransactionAdministration().stop();
+		this.getTheObjectStore().terminate(); 
+		TransactionAdministration.getTheTransactionAdministration().terminate();
+		theAdministration = null;
 	}
 	private void storeObject(RealFramework_Object createdObject) {
 		try {
@@ -159,7 +169,7 @@ public class ObjectAdministration {
 		return this.getTheObjectStore().getRootDirectoryOfObjectStore();
 	}
 
-	public Collection<Object_Transactional> getByIndex(String className, String fieldName, String index) {
+	synchronized public Collection<Object_Transactional> getByIndex(String className, String fieldName, String index) {
 		try {
 			Set<Long> numbersForObjectsInIndex = this.getTheIndexStore().getByIndex(className, fieldName, index);
 			Collection<Object_Transactional> result = new LinkedList<Object_Transactional>();

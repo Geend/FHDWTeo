@@ -2,13 +2,13 @@ package de.fhdw.ml.transactionFramework.transactions;
 
 import de.fhdw.ml.transactionFramework.transactions.Buffer.StopException;
 
-class TransactionExecuter extends ActiveTransactionObject {
+public class TransactionExecuter extends ActiveTransactionObject {
 
 	private static Integer lastNumber = new Integer(0);
 	final private Integer number;
 
 	final private TransactionManager manager;
-	private TEOTransactionWithTwoExceptions<?, ?, ?> currentTask;
+	private TEOTransactionWith2Exceptions<?, ?, ?> currentTask;
 
 	public TransactionExecuter( TransactionManager manager){
 		this.manager = manager;
@@ -23,15 +23,16 @@ class TransactionExecuter extends ActiveTransactionObject {
 	public void run() {
 		while( true ){
 			try {
-				TEOTransactionWithTwoExceptions<?, ?, ?> task = this.inputBuffer.get();
+				TEOTransactionWith2Exceptions<?, ?, ?> task = this.inputBuffer.get();
 				this.setAndExecuteCurrentTransaction(task);
 				manager.acknowlegdeExecution( task );
 			} catch (StopException e) {
+				this.manager.reportTermination();
 				return;
 			}
 		}
 	}
-	private void setAndExecuteCurrentTransaction(TEOTransactionWithTwoExceptions<?, ?, ?> task) {
+	private void setAndExecuteCurrentTransaction(TEOTransactionWith2Exceptions<?, ?, ?> task) {
 		this.currentTask = task;
 		task.execute();
 	}
@@ -40,7 +41,7 @@ class TransactionExecuter extends ActiveTransactionObject {
 		return "Executer " + this.number;
 	}
 
-	public TEOTransactionWithTwoExceptions<?, ?, ?> getcurrentTransaction() {
+	public TEOTransactionWith2Exceptions<?, ?, ?> getCurrentTransaction() {
 		return this.currentTask;
 	}
 }

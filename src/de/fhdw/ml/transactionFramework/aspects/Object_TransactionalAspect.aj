@@ -1,6 +1,7 @@
 package de.fhdw.ml.transactionFramework.aspects;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 
 import de.fhdw.ml.transactionFramework.administration.ObjectAdministration;
 import de.fhdw.ml.transactionFramework.administration.ReflectionSupport;
@@ -60,20 +61,27 @@ public aspect Object_TransactionalAspect {
 		get(Framework_Object+ Object_Transactional+.*)
 		&& target(readObject);
 
-	before(RealFramework_Object readObject) : getterInConstructor(readObject) && !within(de.fhdw.ml.transactionFramework.aspects.*) {
+	before(RealFramework_Object readObject) : getterInConstructor(readObject) && 
+												!within(de.fhdw.ml.transactionFramework.aspects.*)  &&
+												!within(de.fhdw.ml.transactionFramework.administration.*) {
 		this.setObjectNumber(readObject);
 	}
 
-	before(Object_Transactional readObject) : getter(readObject) && !within(de.fhdw.ml.transactionFramework.aspects.*) {
-		ObjectAdministration.getCurrentAdministration().prepareObjectRead(readObject, thisJoinPoint.getSignature().getName());
+	before(Object_Transactional readObject) : getter(readObject) && 
+											  !within(de.fhdw.ml.transactionFramework.aspects.*) &&
+											  !within(de.fhdw.ml.transactionFramework.administration.*){
+		String fieldName = thisJoinPoint.getSignature().getName();
+		Field field = ReflectionSupport.getFieldAccess(readObject, fieldName);
+		if (!Modifier.isTransient(field.getModifiers())) ObjectAdministration.getCurrentAdministration().prepareObjectRead(readObject, fieldName);
 	}
 
-	before(Object_Transactional readObject) : getterForTransactionObject(readObject)  
-	   											&& !within(de.fhdw.ml.transactionFramework.aspects.*) {
+	before(Object_Transactional readObject) : getterForTransactionObject(readObject)  && 
+												!within(de.fhdw.ml.transactionFramework.aspects.*)  &&
+												!within(de.fhdw.ml.transactionFramework.administration.*) {
 		Field accessedField = ReflectionSupport.getFieldAccess(readObject, thisJoinPoint.getSignature().getName());
 		try {
 			accessedField.setAccessible(true);
-			Long objectNumber = readObject.getTransactionalAttributeMap().get(accessedField.getName());
+			Long objectNumber = readObject.getAttributeMap().get(accessedField.getName());
 			if (accessedField.get(readObject) == null && objectNumber != null) {
 				accessedField.set(readObject, ObjectAdministration.getCurrentAdministration().provideObject(objectNumber));
 			}
@@ -112,20 +120,29 @@ public aspect Object_TransactionalAspect {
 //		&& this(manipulatedObject) 
 //		&& args(newValue);
 
-	before(Object_Transactional manipulatedObject) : setterInConstructor(manipulatedObject) && !within(de.fhdw.ml.transactionFramework.aspects.*) {
+	before(Object_Transactional manipulatedObject) : setterInConstructor(manipulatedObject) && 
+														!within(de.fhdw.ml.transactionFramework.aspects.*)  &&
+														!within(de.fhdw.ml.transactionFramework.administration.*) {
 		this.setObjectNumber(manipulatedObject);
 	}
 
 	void around(Object_Transactional manipulatedObject) 
-		: setter(manipulatedObject) && !within(de.fhdw.ml.transactionFramework.aspects.*) {
-		ObjectAdministration.getCurrentAdministration().prepareObjectWrite(manipulatedObject, thisJoinPoint.getSignature().getName());
+		: setter(manipulatedObject) && 
+		  !within(de.fhdw.ml.transactionFramework.aspects.*) &&
+		  !within(de.fhdw.ml.transactionFramework.administration.*){
+		String fieldName = thisJoinPoint.getSignature().getName();
+		Field field = ReflectionSupport.getFieldAccess(manipulatedObject, fieldName);
+		boolean isTransient = Modifier.isTransient(field.getModifiers());
+		if (!isTransient) ObjectAdministration.getCurrentAdministration().prepareObjectWrite(manipulatedObject, fieldName);
 		proceed(manipulatedObject);
-		ObjectAdministration.getCurrentAdministration().finishObjectWrite(manipulatedObject, thisJoinPoint.getSignature().getName());
+		if (!isTransient) ObjectAdministration.getCurrentAdministration().finishObjectWrite(manipulatedObject, fieldName);
 	}
 
 	void around(Object_Transactional manipulatedObject, RealFramework_Object newValue) 
-		: setterForTransactionObject(manipulatedObject, newValue) && !within(de.fhdw.ml.transactionFramework.aspects.*) {
-		manipulatedObject.getTransactionalAttributeMap().put(thisJoinPoint.getSignature().getName(), newValue.getObject$Number());
+		: setterForTransactionObject(manipulatedObject, newValue) && 
+			!within(de.fhdw.ml.transactionFramework.aspects.*)  &&
+			!within(de.fhdw.ml.transactionFramework.administration.*) {
+		manipulatedObject.getAttributeMap().put(thisJoinPoint.getSignature().getName(), newValue.getObject$Number());
 		ObjectAdministration.getCurrentAdministration().prepareObjectWrite(manipulatedObject, thisJoinPoint.getSignature().getName());
 		proceed(manipulatedObject, newValue);
 		ObjectAdministration.getCurrentAdministration().finishObjectWrite(manipulatedObject, thisJoinPoint.getSignature().getName());
@@ -133,7 +150,9 @@ public aspect Object_TransactionalAspect {
 	}
 
 	before(Object_Transactional manipulatedObject, String newValue) 
-		: setterForIndexedStringField(manipulatedObject, newValue) && !within(de.fhdw.ml.transactionFramework.aspects.*) {
+		: setterForIndexedStringField(manipulatedObject, newValue) && 
+			!within(de.fhdw.ml.transactionFramework.aspects.*) &&
+			!within(de.fhdw.ml.transactionFramework.administration.*) {
 		ObjectAdministration.getCurrentAdministration().prepareStringIndexUpdate(manipulatedObject, newValue, thisJoinPoint.getSignature().getName());
 	}
 

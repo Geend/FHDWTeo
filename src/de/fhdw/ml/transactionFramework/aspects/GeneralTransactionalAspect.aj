@@ -18,11 +18,14 @@ public aspect GeneralTransactionalAspect {
 	
 	private static final String CloneOperationName = "clone";
 	
-	private HashMap<String, Long> Object_Transactional.transactionalAttributeMap;
+	/**
+	 * Infrastructure for lazy loading and non-recursive serialization.
+	 */
+	private HashMap<String, Long> Object_Transactional.attributeMap;	
 	
-	HashMap<String, Long> Object_Transactional.getTransactionalAttributeMap(){
-		if (transactionalAttributeMap == null) transactionalAttributeMap = new HashMap<String,Long>();
-		return transactionalAttributeMap;
+	HashMap<String, Long> Object_Transactional.getAttributeMap(){
+		if (this.attributeMap == null) this.attributeMap = new HashMap<String,Long>();
+		return this.attributeMap;
 	}
 	public Object Object_Transactional.writeReplace() throws ObjectStreamException {
 		System.out.println("Start writeReplace: " + this.getObject$Number());
@@ -40,7 +43,7 @@ public aspect GeneralTransactionalAspect {
 			Method cloneMethod = ReflectionSupport.getMethodAccess(this, CloneOperationName, new Class[0]);
 			cloneMethod.setAccessible(true);
 			result = (Object_Transactional) cloneMethod.invoke(this, new Object[0]);
-			result.transactionalAttributeMap = (HashMap<String, Long>) result.getTransactionalAttributeMap().clone();
+			result.attributeMap = (HashMap<String, Long>) result.getAttributeMap().clone();
 			cloneMethod.setAccessible(false);
 		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | SecurityException e) {
 			throw new Error(e);

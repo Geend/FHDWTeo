@@ -1,6 +1,6 @@
 package de.fhdw.ml.transactionFramework.transactions;
 
-class TransactionThread extends Thread {
+public class TransactionThread extends Thread {
 
 	final private TransactionExecuter ownerOfThisThread;
 	
