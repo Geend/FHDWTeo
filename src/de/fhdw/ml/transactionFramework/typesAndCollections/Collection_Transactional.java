@@ -4,11 +4,21 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Vector;
 
-import de.fhdw.ml.transactionFramework.administration.ObjectAdministration;
-
 @SuppressWarnings("serial")
-public class Collection_Transactional<E extends Object_Transactional>  implements Collection<E>, Framework_CollectionObject {
+public class Collection_Transactional<E extends Object_Transactional> implements Collection<E>, Framework_CollectionObject  {
 
+	private static final String ADD_ALLOperationName = "addAll";
+	private static final String CLEAROperationName = "clear";
+	private static final String RETAIN_ALLOperationName = "retainAll";
+	private static final String REMOVE_ALLOperationName = "removeAll";
+	private static final String CONTAINS_ALLOpwerationName = "containsAll";
+	private static final String REMOVEOperationName = "remove";
+	private static final String TO_ARRAY_T_OperationName = "toArray<T>";
+	private static final String TO_ARRAYOperationName = "toArray";
+	private static final String CONTAINSOperationName = "contains";
+	private static final String IS_EMPTYOperationName = "isEmpty";
+	private static final String SIZEOperationName = "size";
+	private static final String ADDOperationName = "add";
 	final protected Collection<Object_TransactionalInCollectionAdapter<E>> internalCollection;
 
 	public Collection_Transactional(CollectionType<E> collectionType){
@@ -31,100 +41,65 @@ public class Collection_Transactional<E extends Object_Transactional>  implement
 	}
 	@Override
 	public boolean add(E e) {
-		this.prepareChange("add");
-		boolean result = this.getInternalCollection().add(new Object_TransactionalInCollectionAdapter<E>(e));
-		this.finishChange("add");		
-		return result;
+		return Framework_CollectionObject.collectionMethod(this, ADDOperationName, ReadWrite.WRITE, 
+				() -> this.getInternalCollection().add(new Object_TransactionalInCollectionAdapter<E>(e))); 
 	}
 	@Override
 	public int size() {
-		this.prepareRead("size");
-		return this.getInternalCollection().size();
+		return Framework_CollectionObject.collectionMethod(this, SIZEOperationName, ReadWrite.READ, () -> this.getInternalCollection().size());
 	}
 	@Override
 	public boolean isEmpty() {
-		this.prepareRead("isEmpty");
-		return this.getInternalCollection().isEmpty();
+		return Framework_CollectionObject.collectionMethod(this, IS_EMPTYOperationName, ReadWrite.READ, () -> this.getInternalCollection().isEmpty());
 	}
 	@Override
 	public boolean contains(Object o) {		
-		this.prepareRead("contains");
-		return this.getInternalCollection().contains(o);
+		return Framework_CollectionObject.collectionMethod(this, CONTAINSOperationName, ReadWrite.READ, () -> this.getInternalCollection().contains(o));
 	}
 	@Override
 	public Object[] toArray() {
-		this.prepareRead("toArray");
-		return this.getInternalCollection().toArray();
+		return Framework_CollectionObject.collectionMethod(this, TO_ARRAYOperationName, ReadWrite.READ, () -> this.getInternalCollection().toArray());
 	}
 	@SuppressWarnings("unchecked")
 	@Override
 	public <T>  T[] toArray(T[] a) {
-		this.prepareRead("toArray<T>");
-        if (a.length < this.size()) a = (T[])java.lang.reflect.Array.newInstance(a.getClass().getComponentType(), this.size());
-        int i = 0;
-		for (Object_TransactionalInCollectionAdapter<?> current : this.getInternalCollection()) {
-			a[i++] = (T)current.getObject();
-		}
-		return a;
+		return Framework_CollectionObject.collectionMethod(this, TO_ARRAY_T_OperationName, ReadWrite.READ, () -> {
+	        final T[] result = a.length < this.size() ? (T[])java.lang.reflect.Array.newInstance(a.getClass().getComponentType(), this.size()) : a; 
+	        int i = 0;
+			for (Object_TransactionalInCollectionAdapter<?> current : this.getInternalCollection()) {
+				result[i++] = (T)current.getObject();
+			}
+			return result; });
+
 	}
 	@Override
 	public boolean remove(Object o) {
-		this.prepareChange("remove");
-		boolean result = this.getInternalCollection().remove(o);
-		if (result) this.finishChange("remove");
-		return result;
+		return Framework_CollectionObject.collectionMethod(this, REMOVEOperationName, ReadWrite.WRITE, () -> this.getInternalCollection().remove(o));
 	}
 	@Override
 	public boolean containsAll(Collection<?> c) {
-		this.prepareRead("containsAll");
-		return this.getInternalCollection().containsAll(c);
+		return Framework_CollectionObject.collectionMethod(this, CONTAINS_ALLOpwerationName, ReadWrite.READ, () -> this.getInternalCollection().containsAll(c) );
 	}
 	@Override
 	public boolean removeAll(Collection<?> c) {
-		this.prepareChange("removeAll");
-		boolean result = this.getInternalCollection().removeAll(c);
-		if (result) this.finishChange("removeAll");
-		return result;
+		return Framework_CollectionObject.collectionMethod(this, REMOVE_ALLOperationName, ReadWrite.WRITE, () -> this.getInternalCollection().removeAll(c));
 	}
 	@Override
 	public boolean retainAll(Collection<?> c) {
-		this.prepareChange("retainAll");
-		boolean result = this.getInternalCollection().retainAll(c);
-		if (result) this.finishChange("retainAll");
-		return result;
+		return Framework_CollectionObject.collectionMethod(this, RETAIN_ALLOperationName, ReadWrite.WRITE, () -> this.getInternalCollection().retainAll(c));
 	}
 	@Override
 	public void clear() {
-		this.prepareChange("clear");
-		this.getInternalCollection().clear();		
-		this.finishChange("clear");
+		Framework_CollectionObject.collectionMethod(this, CLEAROperationName, ReadWrite.WRITE, () -> {this.getInternalCollection().clear(); return null;});
 	}
 	@Override
 	public boolean addAll(Collection<? extends E> c) {
-		this.prepareChange("addAll");
-		boolean result = false;
-		for (E current : c) {
-			result = result | this.getInternalCollection().add(new Object_TransactionalInCollectionAdapter<E>(current));
-		}
-		if (result) this.finishChange("addAll");
-		return result;
-	}
-	protected void prepareRead(String methodName){
-		ObjectAdministration.getCurrentAdministration().prepareCollectionRead(this, methodName);
-	}
-	protected void prepareChange(String methodName){
-		ObjectAdministration.getCurrentAdministration().prepareCollectionWrite(this, methodName);
-	}
-	protected void finishChange(String methodName){
-		ObjectAdministration.getCurrentAdministration().finishCollectionWrite(this, methodName);
-	}
-	public void prepareReadByIterator(String methodName) {
-		this.prepareRead(methodName);
-	}
-	public void prepareChangeByIterator(String methodName) {
-		this.prepareChange(methodName);
-	}
-	public void finishChangeByIterator(String methodName) {
-		this.finishChange(methodName);
+		return Framework_CollectionObject.collectionMethod(this, ADD_ALLOperationName, ReadWrite.WRITE, () -> {
+			boolean result = false;
+			for (E current : c) {
+				result = result | this.getInternalCollection().add(new Object_TransactionalInCollectionAdapter<E>(current));
+			}
+			return result;			
+		});
 	}
 }

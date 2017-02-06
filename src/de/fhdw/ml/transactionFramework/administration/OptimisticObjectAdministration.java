@@ -1,52 +1,75 @@
 package de.fhdw.ml.transactionFramework.administration;
 
-import java.util.Comparator;
+import java.util.Set;
 
 import de.fhdw.ml.transactionFramework.transactions.TEOTransactionWith2Exceptions;
 import de.fhdw.ml.transactionFramework.transactions.TransactionThread;
 import de.fhdw.ml.transactionFramework.typesAndCollections.Object_Transactional;
+import de.fhdw.ml.transactionFramework.typesAndCollections.ReadWrite;
+import de.fhdw.ml.transactionFramework.typesAndCollections.ReadWriteVisitor;
 
 public class OptimisticObjectAdministration extends ObjectAdministration {
-
-	private ConflictGraph<TEOTransactionWith2Exceptions<?, ?, ?>> conflictGraph;
-
-	protected OptimisticObjectAdministration() {
-		this.conflictGraph = new ConflictGraph<>(new Comparator<TEOTransactionWith2Exceptions<?, ?, ?>>() {
-
-			@Override
-			public int compare(TEOTransactionWith2Exceptions<?, ?, ?> t1, TEOTransactionWith2Exceptions<?, ?, ?> t2) {
-				return new Long(t1.getTransactionNumber()).compareTo(t2.getTransactionNumber());
-			}
-
-		});
+	
+	private final ConflictGraph<TEOTransactionWith2Exceptions<?,?,?>> conflictGraph;
+	private Mutex mutex;
+	
+	public OptimisticObjectAdministration() {
+		super();
+		this.conflictGraph = new ConflictGraph<TEOTransactionWith2Exceptions<?,?,?>>();
+		this.mutex = new Mutex();
 	}
-
-	@Override
 	public void prepareObjectRead(Object_Transactional object, String fieldName) {
+		super.prepareObjectRead(object, fieldName);
+		object.enterMutex();
+		TEOTransactionWith2Exceptions<?, ?, ?> currentTransaction;
 		try {
-
-			synchronized (object) {
-
-				TransactionThread currentThread = (TransactionThread) Thread.currentThread();
-				TEOTransactionWith2Exceptions<?, ?, ?> currentTransaction = currentThread.getOwnerOfThisThread()
-						.getCurrentTransaction();
-
-				TEOTransactionWith2Exceptions<?, ?, ?> lastWriter = object.getLastWriters().get(fieldName);
-
-				if (lastWriter != null) {
-					this.conflictGraph.putSuccessor(lastWriter, currentTransaction, t -> {
-						this.abort(t);
-					});
-				}
-				object.addLastReader(fieldName, currentTransaction);
-			}
-		} catch (ClassCastException cee) {
+			TransactionThread currentThread = (TransactionThread)Thread.currentThread();
+			currentTransaction = currentThread.getOwnerOfThisThread().getCurrentTransaction();
+		} catch (ClassCastException cce) {
 			return;
 		}
+		boolean mayNeedConflictGraph = this.mayProduceConflictGraphUpdate(object, fieldName, currentTransaction, ReadWrite.READ);
+		if (mayNeedConflictGraph) {
+			object.leaveMutex();
+			this.mutex.enter();
+			object.enterMutex();
+			TEOTransactionWith2Exceptions<?, ?, ?> lastWriter = object.getLastWriter(fieldName);
+			if (lastWriter != null) {
+				try {
+					this.conflictGraph.putSuccessor(lastWriter, currentTransaction);
+					object.setConflictInCurrentOperation(true);
+				} catch (CycleException e) {
+					this.abort(currentTransaction);
+				}
+			}
+		}
+		object.addLastReader(fieldName, currentTransaction);
+	}
+	public void finishObjectRead(Object_Transactional object, String fieldName) {
+		boolean conflictGraphUpdate = object.hasConflictInCurrentOperation();
+		object.setConflictInCurrentOperation(false);
+		object.leaveMutex();
+		if (conflictGraphUpdate) this.mutex.leave();
+		super.finishObjectRead(object, fieldName);
 	}
 
-	private void abort(TEOTransactionWith2Exceptions<?, ?, ?> t) {
-		// TODO Auto-generated method stub
-
+	private boolean mayProduceConflictGraphUpdate(Object_Transactional object, String fieldName, TEOTransactionWith2Exceptions<?, ?, ?> transaction, ReadWrite readWrite){
+		return readWrite.accept(new ReadWriteVisitor<Boolean>() {
+			@Override
+			public Boolean handleWrite() {
+				Set<TEOTransactionWith2Exceptions<?, ?, ?>> lastReaders = object.getLastReaders(fieldName);
+				TEOTransactionWith2Exceptions<?, ?, ?> lastWriter = object.getLastWriter(fieldName);
+				return !lastReaders.isEmpty() || (lastWriter != null && lastWriter != transaction);
+			}
+			@Override
+			public Boolean handleRead() {
+				return object.getLastWriter(fieldName) != null;
+			}
+		});
 	}
+	private void abort(TEOTransactionWith2Exceptions<?, ?, ?> transaction) {
+		// TODO
+	}
+
 }
+

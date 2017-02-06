@@ -1,11 +1,10 @@
 package de.fhdw.ml.transactionFramework.administration;
 
-import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-public class ConflictGraph<T> {
+public class ConflictGraph<T extends Comparable<T>> {
 	
 	private final Map<T,TreeSet<T>> directSuccessors;
 	private final Map<T,TreeSet<T>> directPredecessors;
@@ -13,7 +12,7 @@ public class ConflictGraph<T> {
 	private final Map<T,TreeSet<T>> successors;
 	private final Map<T,TreeSet<T>> predecessors;
 	
-	public ConflictGraph(Comparator<T> comparator) {
+	public ConflictGraph() {
 		this.directSuccessors = new TreeMap<T,TreeSet<T>>();
 		this.directPredecessors = new TreeMap<T,TreeSet<T>>();
 		this.successors = new TreeMap<T,TreeSet<T>>();
@@ -66,12 +65,9 @@ public class ConflictGraph<T> {
 		result.add(t);
 		return result;
 	}
-	synchronized public void putSuccessor(T predecessor, T successor, OnCycle<T> onCycle) {
+	public void putSuccessor(T predecessor, T successor) throws CycleException {
 		if (this.hasPath(predecessor, successor)) return;
-		if (predecessor.equals(successor) || this.hasPath(successor, predecessor)) {
-			onCycle.handleCycle(successor);
-			return;
-		}
+		if (predecessor.equals(successor) || this.hasPath(successor, predecessor)) throw new CycleException(successor);
 		this.getDirectSuccessors(predecessor).add(successor);
 		this.getDirectPredecessors(successor).add(predecessor);
 		TreeSet<T> beforePredecessor = this.getPredecessorsAndMeAsCopy(predecessor);
@@ -91,4 +87,13 @@ public class ConflictGraph<T> {
 	public boolean isMaximal(T t) {
 		return this.getDirectSuccessors(t).size() == 0;
 	}
+}
+class CycleException extends Exception {
+	private static final long serialVersionUID = 1L;
+	Object t;
+	public CycleException(Object t) {
+		super("Cycle prevented!");
+		this.t = t;
+	}
+	
 }

@@ -4,6 +4,9 @@ import java.util.Iterator;
 
 public class Iterator_Transactional<E extends Object_Transactional> implements Iterator<E> {
 
+	private static final String REMOVE_BY_ITERATOROperationName = "remove";
+	private static final String NEXTOperationName = "next";
+	private static final String HAS_NEXTOperationName = "hasNext";
 	final protected Collection_Transactional<E> collection;
 	protected Iterator<Object_TransactionalInCollectionAdapter<E>> internalIterator;
 
@@ -23,20 +26,16 @@ public class Iterator_Transactional<E extends Object_Transactional> implements I
 	
 	@Override
 	public boolean hasNext() {
-		this.getCollection().prepareReadByIterator("hasNext");
-		return this.getInternalIterator().hasNext();
+		return Framework_CollectionObject.collectionMethod(this.getCollection(), HAS_NEXTOperationName, ReadWrite.READ, () -> this.getInternalIterator().hasNext()); 
 	}
 	
 	@Override
 	public E next() {
-		this.getCollection().prepareReadByIterator("next");
-		return this.getInternalIterator().next().getObject();
+		return Framework_CollectionObject.collectionMethod(this.getCollection(), NEXTOperationName, ReadWrite.READ, () -> this.getInternalIterator().next().getObject());
 	}
 	
 	@Override
 	public void remove(){
-		this.getCollection().prepareChangeByIterator("remove");
-		this.getInternalIterator().remove();
-		this.getCollection().finishChangeByIterator("remove");
+		Framework_CollectionObject.collectionMethod(this.getCollection(), REMOVE_BY_ITERATOROperationName, ReadWrite.WRITE, () -> {this.getInternalIterator().remove(); return null;});
 	}
 }

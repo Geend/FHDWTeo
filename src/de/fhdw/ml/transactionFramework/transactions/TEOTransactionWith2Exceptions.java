@@ -2,7 +2,7 @@ package de.fhdw.ml.transactionFramework.transactions;
 
 import de.fhdw.ml.transactionFramework.administration.ObjectAdministration;
 
-abstract public class TEOTransactionWith2Exceptions< ReturnType, E1 extends Exception, E2 extends Exception> {
+abstract public class TEOTransactionWith2Exceptions< ReturnType, E1 extends Exception, E2 extends Exception> implements Comparable<TEOTransactionWith2Exceptions<?, ?, ?>>{
 	
 	private final long transactionNumber;
 	
@@ -18,6 +18,21 @@ abstract public class TEOTransactionWith2Exceptions< ReturnType, E1 extends Exce
 	
 	public long getTransactionNumber(){
 		return transactionNumber;
+	}
+
+	@Override
+	public int compareTo(TEOTransactionWith2Exceptions<?, ?, ?> o) {
+		return new Long(this.getTransactionNumber()).compareTo(o.getTransactionNumber());
+	}
+	public boolean equals(Object argument) {
+		if (argument instanceof TEOTransactionWith2Exceptions<?, ?, ?>) {
+			TEOTransactionWith2Exceptions<?, ?, ?> argumentAsTransaction = (TEOTransactionWith2Exceptions<?, ?, ?>)argument;
+			return this.getTransactionNumber() == argumentAsTransaction.getTransactionNumber();
+		}
+		return false;
+	}
+	public int hashCode(){
+		return new Long(this.getTransactionNumber()).hashCode();
 	}
 	abstract protected ReturnType operation() throws E1, E2;
 	

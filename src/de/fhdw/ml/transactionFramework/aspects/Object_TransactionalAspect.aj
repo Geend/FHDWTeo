@@ -30,7 +30,9 @@ public aspect Object_TransactionalAspect {
 			return false;
 		}
 	}
-
+	public int RealFramework_Object.hashCode(){
+		return new Long(this.getObject$Number()).hashCode();
+	}
 	pointcut objectCreation() : 
 		call (RealFramework_Object+.new(..));
 
@@ -67,14 +69,18 @@ public aspect Object_TransactionalAspect {
 		this.setObjectNumber(readObject);
 	}
 
-	before(Object_Transactional readObject) : getter(readObject) && 
+	Object around (Object_Transactional readObject) : getter(readObject) && 
 											  !within(de.fhdw.ml.transactionFramework.aspects.*) &&
 											  !within(de.fhdw.ml.transactionFramework.administration.*){
 		String fieldName = thisJoinPoint.getSignature().getName();
 		Field field = ReflectionSupport.getFieldAccess(readObject, fieldName);
-		if (!Modifier.isTransient(field.getModifiers())) ObjectAdministration.getCurrentAdministration().prepareObjectRead(readObject, fieldName);
+		ObjectAdministration administration = ObjectAdministration.getCurrentAdministration();
+		if (!Modifier.isTransient(field.getModifiers())) administration.prepareObjectRead(readObject, fieldName); 
+		Object result = proceed(readObject);
+		if (!Modifier.isTransient(field.getModifiers())) administration.finishObjectRead(readObject, fieldName); 
+		return result;
 	}
-
+	//TODO Think about synchronization!!!
 	before(Object_Transactional readObject) : getterForTransactionObject(readObject)  && 
 												!within(de.fhdw.ml.transactionFramework.aspects.*)  &&
 												!within(de.fhdw.ml.transactionFramework.administration.*) {
@@ -126,10 +132,9 @@ public aspect Object_TransactionalAspect {
 		this.setObjectNumber(manipulatedObject);
 	}
 
-	void around(Object_Transactional manipulatedObject) 
-		: setter(manipulatedObject) && 
-		  !within(de.fhdw.ml.transactionFramework.aspects.*) &&
-		  !within(de.fhdw.ml.transactionFramework.administration.*){
+	void around(Object_Transactional manipulatedObject) : setter(manipulatedObject) && 
+		  													!within(de.fhdw.ml.transactionFramework.aspects.*) &&
+		  													!within(de.fhdw.ml.transactionFramework.administration.*){
 		String fieldName = thisJoinPoint.getSignature().getName();
 		Field field = ReflectionSupport.getFieldAccess(manipulatedObject, fieldName);
 		boolean isTransient = Modifier.isTransient(field.getModifiers());

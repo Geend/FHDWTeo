@@ -9,8 +9,7 @@ import java.util.LinkedList;
 import java.util.Set;
 
 import de.fhdw.ml.transactionFramework.transactions.TransactionAdministration;
-import de.fhdw.ml.transactionFramework.typesAndCollections.Collection_Transactional;
-import de.fhdw.ml.transactionFramework.typesAndCollections.Map2Object_Transactional;
+import de.fhdw.ml.transactionFramework.typesAndCollections.Framework_CollectionObject;
 import de.fhdw.ml.transactionFramework.typesAndCollections.Object_Transactional;
 import de.fhdw.ml.transactionFramework.typesAndCollections.RealFramework_Object;
 
@@ -22,7 +21,7 @@ public class ObjectAdministration {
 	private static ObjectAdministration theAdministration = null;
 	
 	public static ObjectAdministration getCurrentAdministration(){
-		if (theAdministration == null) theAdministration = new ObjectAdministration();
+		if (theAdministration == null) theAdministration = new OptimisticObjectAdministration();
 		return theAdministration;
 	}
 	
@@ -53,35 +52,31 @@ public class ObjectAdministration {
 		System.out.println("Object creation: " + createdObject.getClass().toString() + " with number  " + createdObject.getObject$Number());	//TODO Handle create
 		this.storeObject(createdObject);
 	}
+	public void prepareObjectRead(Object_Transactional object, String fieldName) {
+		System.out.println("Prepare read of field " + fieldName + " in: " + object.getObject$Number()); //TODO Prepare read of field
+	}
+	public void finishObjectRead(Object_Transactional object, String fieldName) {
+		System.out.println("Finish read of field " + fieldName + " in: " + object.getObject$Number()); //TODO Finish read of field
+	}
 	public void prepareObjectWrite(Object_Transactional object, String fieldName) {
 		System.out.println("Prepare write of field " + fieldName + " in: " + object.getObject$Number()); //TODO Prepare write of field 
 	}
 	public void finishObjectWrite(Object_Transactional object, String fieldName) {
-		System.out.println("Finish write of field " + fieldName + " in: " + object.getObject$Number()); //TODO Finish write of field
-		this.storeObject(object);
+		System.out.println("Finish write of field " + fieldName + " in: " + object.getObject$Number()); //TODO Finish write of field 
+		this.storeObject(object);			
 	}
-	public void prepareCollectionRead(Collection_Transactional<?> collection, String methodName) {
-		System.out.println("Prepare collection read by method " + methodName + " in: " + collection.getObject$Number()); //TODO Prepare collection read by method
+	public void prepareCollectionRead(Framework_CollectionObject collection, String methodName) {
+		System.out.println("Prepare collection read " + methodName + " in: " + collection.getObject$Number()); //TODO Prepare collection read
 	}
-	public void prepareCollectionWrite(Collection_Transactional<?> collection, String methodName) {
-		System.out.println("Prepare collection write by method " + methodName + " in: " + collection.getObject$Number()); //TODO Prepare collection write by method
+	public void finishCollectionRead(Framework_CollectionObject collection, String methodName) {
+		System.out.println("Finish collection read " + methodName + " in: " + collection.getObject$Number()); //TODO Finishcollection read
 	}
-	public void finishCollectionWrite(Collection_Transactional<?> collection, String methodName) {
-		System.out.println("Finish collection write by method " + methodName + " in: " +  collection.getObject$Number()); //TODO Finish collection write by method
+	public void prepareCollectionWrite(Framework_CollectionObject collection, String methodName) {
+		System.out.println("Prepare collection write " + methodName + " in: " + collection.getObject$Number()); //TODO Prepare collection write
+	}
+	public void finishCollectionWrite(Framework_CollectionObject collection, String methodName) {
+		System.out.println("Finish collection write by method " + methodName + " in: " +  collection.getObject$Number()); //TODO Finish collection write
 		this.storeObject(collection);
-	}
-	public void prepareMapRead(Map2Object_Transactional<?, ?> map, String methodName) {
-		System.out.println("Prepare map read by method " + methodName + " in: " + map.getObject$Number()); //TODO Prepare map read by method
-	}
-	public void prepareMapWrite(Map2Object_Transactional<?, ?> map, String methodName) {
-		System.out.println("Prepare map write by method " + methodName + " in: " + map.getObject$Number()); //TODO Prepare map write by method
-	}
-	public void finishMapWrite(Map2Object_Transactional<?, ?> map, String methodName) {
-		System.out.println("Finish map write by method " + methodName + " in: " +  map.getObject$Number()); //TODO Finish map write by method
-		this.storeObject(map);
-	}
-	public void prepareObjectRead(Object_Transactional object, String fieldName) {
-		System.out.println("Prepare read of field " + fieldName + " in: " + object.getObject$Number()); //TODO Prepare read of field
 	}
 	public Object provideObject(Long objectNumber) {
 		try {
